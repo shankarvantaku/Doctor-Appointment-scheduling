@@ -1,0 +1,52 @@
+from datetime import datetime, timedelta
+
+def schedule_appointment(doctor_blocked_time, doctor_time_limits, patient_blocked_time, patient_time_limits, meeting_duration):
+    def get_available_time_blocks(person_blocked_time, person_time_limits, meeting_duration):
+        start_time = datetime.strptime(person_time_limits[0], '%H:%M')
+        end_time = datetime.strptime(person_time_limits[1], '%H:%M')
+
+        available_blocks = [
+            (start_time, datetime.strptime(person_blocked_time[0][0], '%H:%M'))
+        ]
+
+        for block in person_blocked_time:
+            block_start = datetime.strptime(block[1], '%H:%M')
+            available_blocks.append((block_start, datetime.strptime(block[0], '%H:%M')))
+
+        available_blocks.append((end_time, datetime.strptime(person_blocked_time[-1][1], '%H:%M')))
+
+        filtered_blocks = [
+            (max(start, prev_end), min(end, next_start))
+            for (start, end), (_, next_start), (_, prev_end) in zip(
+                available_blocks[:-2], available_blocks[1:-1], available_blocks[2:]
+            )
+        ]
+
+        return [block for block in filtered_blocks if (block[1] - block[0]) >= timedelta(minutes=meeting_duration)]
+
+    doctor_available_time_blocks = set(get_available_time_blocks(doctor_blocked_time, doctor_time_limits, meeting_duration))
+    patient_available_time_blocks = set(get_available_time_blocks(patient_blocked_time, patient_time_limits, meeting_duration))
+
+    common_time_blocks = sorted(list(doctor_available_time_blocks.intersection(patient_available_time_blocks)))
+
+    return [(start.strftime('%H:%M'), end.strftime('%H:%M')) for start, end in common_time_blocks]
+
+# Test Case 1
+doctor_blocked_time_1 = [['9:00', '10:30'], ['12:00', '13:00'], ['16:00', '18:00']]
+doctor_time_limits_1 = ['9:00', '20:00']
+patient_blocked_time_1 = [['10:00', '11:30'], ['12:30', '14:30'], ['14:30', '15:00'], ['16:00', '17:00']]
+patient_time_limits_1 = ['10:00', '18:30']
+meeting_duration_1 = 30
+
+result_1 = schedule_appointment(doctor_blocked_time_1, doctor_time_limits_1, patient_blocked_time_1, patient_time_limits_1, meeting_duration_1)
+print(result_1)
+
+# Test Case 2
+doctor_blocked_time_2 = [['9:00', '10:30'], ['12:00', '13:00'], ['16:00', '18:00']]
+doctor_time_limits_2 = ['9:00', '20:00']
+patient_blocked_time_2 = [['10:00', '11:30'], ['12:30', '14:30'], ['14:30', '15:00'], ['16:00', '17:00']]
+patient_time_limits_2 = ['10:00', '18:30']
+meeting_duration_2 = 30
+
+result_2 = schedule_appointment(doctor_blocked_time_2, doctor_time_limits_2, patient_blocked_time_2, patient_time_limits_2, meeting_duration_2)
+print(result_2)
